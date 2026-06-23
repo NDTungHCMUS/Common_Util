@@ -1,347 +1,147 @@
 ---
 name: code-review-and-quality
-description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
+description: |
+  Whole-solution code review across correctness, readability, architecture, security, and performance.
+  Use when: reviewing a solution or codebase, performing security audits, checking code quality,
+  preparing review feedback, or when the user mentions code review, security vulnerabilities, or performance issues.
+user-invocable: true
 ---
 
 # Code Review and Quality
 
-## Overview
+You are an expert reviewer who reviews the **entire solution** for understanding, insights, and feedback — then manually drills into the areas AI insights point to, validating each finding with your own engineering judgment. The goal is a deep understanding of the whole implementation and clear, actionable feedback, not a line-by-line gate.
 
-Multi-dimensional code review with quality gates. Every change gets reviewed before merge — no exceptions. Review covers five axes: correctness, readability, architecture, security, and performance.
+This is a local MVP solution (not a PR, not pushed to GitHub). Review the full project as it stands.
 
-**The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a change because it isn't exactly how you would have written it. If it improves the codebase and follows the project's conventions, approve it.
+## Preparation Checklist
 
-## When to Use
+- [ ] Review the solution against requirements, correctness, and code quality.
+- [ ] Build an understanding of the overall implementation before drilling into details.
+- [ ] Identify key strengths, weaknesses, risks, and gaps.
+- [ ] Evaluate structure, readability, maintainability, and design decisions.
+- [ ] Examine edge cases, failure handling, and important constraints.
+- [ ] Use AI to accelerate review while validating findings independently.
+- [ ] Provide clear, actionable feedback backed by engineering judgment.
 
-- Before merging any PR or change
-- After completing a feature implementation
-- When another agent or model produced code you need to evaluate
-- When refactoring existing code
-- After any bug fix (review both the fix and the regression test)
+## Flow
 
-## The Five-Axis Review
+1. **Understand the whole solution first.**
+   - Read `CLAUDE.md` and any spec/requirements to learn what the solution is meant to do.
+   - Map the structure end to end (controller → service → repository, entities, config) before judging any part.
+   - Write a 2–4 sentence mental model of how a request flows through the system. Don't drill in until you can describe the whole.
 
-Every review evaluates code across these dimensions:
+2. **Use AI to review the full solution for insights.**
+   - Run two independent review subagents with the `Agent` tool (agent type `code-review`), in one message, each given the whole solution and the same instructions:
+     - `code-reviewer-opus48`, model `opus` (Claude Opus 4.8).
+     - `code-reviewer-sonnet46`, model `sonnet` (Claude Sonnet 4.6).
+   - Do not show either subagent the other's report. Two perspectives surface different blind spots.
+   - These reviews are **insights to investigate, not conclusions to copy**.
 
-### 1. Correctness
+3. **Manually drill into the areas AI flagged — and validate independently.**
+   - For each AI insight, open the actual code and confirm it against the source before accepting it. Discard anything you can't reproduce.
+   - Follow the most interesting or risky threads deeper than the AI did (trace the data flow, check the edge case, read the failure path).
+   - Note anything the AI missed that your own reading surfaces.
 
-Does the code do what it claims to do?
+4. **Synthesize feedback with engineering judgment.** Cover both:
+   - **Strengths** — what's done well (clean boundaries, good naming, sensible design choices). The rubric rewards a balanced read, not just defect-hunting.
+   - **Weaknesses, risks, gaps** — classified by axis (below), each independently verified.
 
-- Does it match the spec or task requirements?
-- Are edge cases handled (null, empty, boundary values)?
-- Are error paths handled (not just the happy path)?
-- Does it pass all tests? Are the tests actually testing the right things?
-- Are there off-by-one errors, race conditions, or state inconsistencies?
+## Review Axes
 
-### 2. Readability & Simplicity
+Every finding maps to one axis (carried into the report as `Axis:`):
 
-Can another engineer (or agent) understand this code without the author explaining it?
+- **Security:** SQL/command injection, missing input validation, hardcoded secrets, data exposure, untrusted external input used without validation.
+- **Performance:** N+1 queries, unbounded loops/fetches, missing pagination on list endpoints, large objects in hot paths, sync work that should be async.
+- **Correctness:** spec mismatch, unhandled edge cases (null/empty/boundary), error-path gaps, race conditions, off-by-one, tests that don't actually test behavior.
+- **Architecture:** breaks the layered structure, wrong dependency direction, duplication that should be shared, wrong abstraction level (over-engineered or too coupled).
+- **Maintainability:** unclear/generic naming, deep nesting or clever tricks, dead code, unnecessary length, missing intent comments.
 
-- Are names descriptive and consistent with project conventions? (No `temp`, `data`, `result` without context)
-- Is the control flow straightforward (avoid nested ternaries, deep callbacks)?
-- Is the code organized logically (related code grouped, clear module boundaries)?
-- Are there any "clever" tricks that should be simplified?
-- **Could this be done in fewer lines?** (1000 lines where 100 suffice is a failure)
-- **Are abstractions earning their complexity?** (Don't generalize until the third use case)
-- Would comments help clarify non-obvious intent? (But don't comment obvious code.)
-- Are there dead code artifacts: no-op variables (`_unused`), backwards-compat shims, or `// removed` comments?
+Avoid style-only comments unless they create real maintenance risk.
 
-### 3. Architecture
+## Subagent Prompt Shape
 
-Does the change fit the system's design?
+```text
+Goal: Independently review the entire solution for understanding, insights, and feedback.
+Repository: <absolute repository path>
+Instructions:
+- Read CLAUDE.md and any requirements, then build an understanding of the whole solution before detailing findings.
+- Identify key strengths as well as weaknesses, risks, and gaps.
+- Classify each finding by axis: Security, Performance, Correctness, Architecture, or Maintainability.
+- Examine edge cases, failure handling, and important constraints.
+- Include exact file paths and line references. Do not edit files.
 
-- Does it follow existing patterns or introduce a new one? If new, is it justified?
-- Does it maintain clean module boundaries?
-- Is there code duplication that should be shared?
-- Are dependencies flowing in the right direction (no circular dependencies)?
-- Is the abstraction level appropriate (not over-engineered, not too coupled)?
-
-### 4. Security
-
-For detailed security guidance, see `security-and-hardening`. Does the change introduce vulnerabilities?
-
-- Is user input validated and sanitized?
-- Are secrets kept out of code, logs, and version control?
-- Is authentication/authorization checked where needed?
-- Are SQL queries parameterized (no string concatenation)?
-- Are outputs encoded to prevent XSS?
-- Are dependencies from trusted sources with no known vulnerabilities?
-- Is data from external sources (APIs, logs, user content, config files) treated as untrusted?
-- Are external data flows validated at system boundaries before use in logic or rendering?
-
-### 5. Performance
-
-For detailed profiling and optimization, see `performance-optimization`. Does the change introduce performance problems?
-
-- Any N+1 query patterns?
-- Any unbounded loops or unconstrained data fetching?
-- Any synchronous operations that should be async?
-- Any unnecessary re-renders in UI components?
-- Any missing pagination on list endpoints?
-- Any large objects created in hot paths?
-
-## Change Sizing
-
-Small, focused changes are easier to review, faster to merge, and safer to deploy. Target these sizes:
-
-```
-~100 lines changed   → Good. Reviewable in one sitting.
-~300 lines changed   → Acceptable if it's a single logical change.
-~1000 lines changed  → Too large. Split it.
+Return:
+Overall understanding: <2-4 sentences on what the solution does and how it's built>
+Strengths:
+Findings:
+- Severity:
+  Axis:
+  File:
+  Lines:
+  Problem:
+  Impact:
+  Suggested fix:
+Open questions:
 ```
 
-**What counts as "one change":** A single self-contained modification that addresses one thing, includes related tests, and keeps the system functional after submission. One part of a feature — not the whole feature.
+## Synthesis & Output
 
-**Splitting strategies when a change is too large:**
+- Deduplicate overlapping findings; keep every high-confidence finding from either model.
+- **Verify each finding against the code yourself** before including it — especially surprising or conflicting ones.
+- Sort findings by severity: Critical, High, Medium, Low. Assign stable IDs `RV-1`, `RV-2`, …
+- For each finding include `Axis:` and `Flagged By:` (`Opus 4.8`, `Sonnet 4.6`, or both — or "manual" for ones you found drilling in).
 
-| Strategy | How | When |
-|----------|-----|------|
-| **Stack** | Submit a small change, start the next one based on it | Sequential dependencies |
-| **By file group** | Separate changes for groups needing different reviewers | Cross-cutting concerns |
-| **Horizontal** | Create shared code/stubs first, then consumers | Layered architecture |
-| **Vertical** | Break into smaller full-stack slices of the feature | Feature work |
+````markdown
+## Overall Understanding
+<2-4 sentences: what the solution does and how it's structured — proves you grasp the whole.>
 
-**When large changes are acceptable:** Complete file deletions and automated refactoring where the reviewer only needs to verify intent, not every line.
+## Strengths
+- <What's done well, with file references.>
 
-**Separate refactoring from feature work.** A change that refactors existing code and adds new behavior is two changes — submit them separately. Small cleanups (variable renaming) can be included at reviewer discretion.
+## Model Summaries
+- **Opus 4.8:** <What this reviewer emphasized.>
+- **Sonnet 4.6:** <What this reviewer emphasized.>
 
-## Change Descriptions
+## Critical Issues
 
-Every change needs a description that stands alone in version control history.
+1. **[RV-1] SQL Injection Vulnerability**
+   - **ID:** RV-1
+   - **Axis:** Security
+   - **Flagged By:** Opus 4.8, Sonnet 4.6
+   - **Location:** `src/main/java/.../UserRepository.java:42`
+   - **Problem:** User input is concatenated directly into a query.
+   - **Impact:** Attackers can execute arbitrary SQL.
+   - **Verified:** Confirmed by reading the method — input reaches the query unbound.
+   - **Fix:** Use a parameterized query / bound parameter.
+   ```java
+   @Query("SELECT u FROM User u WHERE u.id = :id")
+   Optional<User> findById(@Param("id") Long id);
+   ```
 
-**First line:** Short, imperative, standalone. "Delete the FizzBuzz RPC" not "Deleting the FizzBuzz RPC." Must be informative enough that someone searching history can understand the change without reading the diff.
+## High Priority
+<Findings or `No high-priority findings.`>
 
-**Body:** What is changing and why. Include context, decisions, and reasoning not visible in the code itself. Link to bug numbers, benchmark results, or design docs where relevant. Acknowledge approach shortcomings when they exist.
+## Medium Priority
+<Findings or `No medium-priority findings.`>
 
-**Anti-patterns:** "Fix bug," "Fix build," "Add patch," "Moving code from A to B," "Phase 1," "Add convenience functions."
+## Low Priority
+<Findings or `No low-priority findings.`>
 
-## Review Process
-
-### Step 1: Understand the Context
-
-Before looking at code, understand the intent:
-
-```
-- What is this change trying to accomplish?
-- What spec or task does it implement?
-- What is the expected behavior change?
-```
-
-### Step 2: Review the Tests First
-
-Tests reveal intent and coverage:
-
-```
-- Do tests exist for the change?
-- Do they test behavior (not implementation details)?
-- Are edge cases covered?
-- Do tests have descriptive names?
-- Would the tests catch a regression if the code changed?
-```
-
-### Step 3: Review the Implementation
-
-Walk through the code with the five axes in mind:
-
-```
-For each file changed:
-1. Correctness: Does this code do what the test says it should?
-2. Readability: Can I understand this without help?
-3. Architecture: Does this fit the system?
-4. Security: Any vulnerabilities?
-5. Performance: Any bottlenecks?
-```
-
-### Step 4: Categorize Findings
-
-Label every comment with its severity so the author knows what's required vs optional:
-
-| Prefix | Meaning | Author Action |
-|--------|---------|---------------|
-| *(no prefix)* | Required change | Must address before merge |
-| **Critical:** | Blocks merge | Security vulnerability, data loss, broken functionality |
-| **Nit:** | Minor, optional | Author may ignore — formatting, style preferences |
-| **Optional:** / **Consider:** | Suggestion | Worth considering but not required |
-| **FYI** | Informational only | No action needed — context for future reference |
-
-This prevents authors from treating all feedback as mandatory and wasting time on optional suggestions.
-
-### Step 5: Verify the Verification
-
-Check the author's verification story:
-
-```
-- What tests were run?
-- Did the build pass?
-- Was the change tested manually?
-- Are there screenshots for UI changes?
-- Is there a before/after comparison?
-```
-
-## Multi-Model Review Pattern
-
-Use different models for different review perspectives:
-
-```
-Model A writes the code
-    │
-    ▼
-Model B reviews for correctness and architecture
-    │
-    ▼
-Model A addresses the feedback
-    │
-    ▼
-Human makes the final call
-```
-
-This catches issues that a single model might miss — different models have different blind spots.
-
-**Example prompt for a review agent:**
-```
-Review this code change for correctness, security, and adherence to
-our project conventions. The spec says [X]. The change should [Y].
-Flag any issues as Critical, Important, or Suggestion.
-```
-
-## Dead Code Hygiene
-
-After any refactoring or implementation change, check for orphaned code:
-
-1. Identify code that is now unreachable or unused
-2. List it explicitly
-3. **Ask before deleting:** "Should I remove these now-unused elements: [list]?"
-
-Don't leave dead code lying around — it confuses future readers and agents. But don't silently delete things you're not sure about. When in doubt, ask.
-
-```
-DEAD CODE IDENTIFIED:
-- formatLegacyDate() in src/utils/date.ts — replaced by formatDate()
-- OldTaskCard component in src/components/ — replaced by TaskCard
-- LEGACY_API_URL constant in src/config.ts — no remaining references
-→ Safe to remove these?
-```
-
-## Review Speed
-
-Slow reviews block entire teams. The cost of context-switching to review is less than the waiting cost imposed on others.
-
-- **Respond within one business day** — this is the maximum, not the target
-- **Ideal cadence:** Respond shortly after a review request arrives, unless deep in focused coding. A typical change should complete multiple review rounds in a single day
-- **Prioritize fast individual responses** over quick final approval. Quick feedback reduces frustration even if multiple rounds are needed
-- **Large changes:** Ask the author to split them rather than reviewing one massive changeset
-
-## Handling Disagreements
-
-When resolving review disputes, apply this hierarchy:
-
-1. **Technical facts and data** override opinions and preferences
-2. **Style guides** are the absolute authority on style matters
-3. **Software design** must be evaluated on engineering principles, not personal preference
-4. **Codebase consistency** is acceptable if it doesn't degrade overall health
-
-**Don't accept "I'll clean it up later."** Experience shows deferred cleanup rarely happens. Require cleanup before submission unless it's a genuine emergency. If surrounding issues can't be addressed in this change, require filing a bug with self-assignment.
+## Recommendations
+- <Highest-leverage improvements, ordered by impact.>
+````
 
 ## Honesty in Review
 
-When reviewing code — whether written by you, another agent, or a human:
+- **Validate, don't rubber-stamp.** Every AI insight gets checked against the code before it makes the report.
+- **Balance the read.** Name real strengths and real problems — both demonstrate understanding.
+- **Quantify when possible.** "This N+1 adds ~50ms per list item" beats "this could be slow."
+- **Back feedback with judgment.** Explain *why* something is a risk, not just *that* the AI flagged it.
 
-- **Don't rubber-stamp.** "LGTM" without evidence of review helps no one.
-- **Don't soften real issues.** "This might be a minor concern" when it's a bug that will hit production is dishonest.
-- **Quantify problems when possible.** "This N+1 query will add ~50ms per item in the list" is better than "this could be slow."
-- **Push back on approaches with clear problems.** Sycophancy is a failure mode in reviews. If the implementation has issues, say so directly and propose alternatives.
-- **Accept override gracefully.** If the author has full context and disagrees, defer to their judgment. Comment on code, not people — reframe personal critiques to focus on the code itself.
+## Red Flags (in your own review process)
 
-## Dependency Discipline
-
-Part of code review is dependency review:
-
-**Before adding any dependency:**
-1. Does the existing stack solve this? (Often it does.)
-2. How large is the dependency? (Check bundle impact.)
-3. Is it actively maintained? (Check last commit, open issues.)
-4. Does it have known vulnerabilities? (`npm audit`)
-5. What's the license? (Must be compatible with the project.)
-
-**Rule:** Prefer standard library and existing utilities over new dependencies. Every dependency is a liability.
-
-## The Review Checklist
-
-```markdown
-## Review: [PR/Change title]
-
-### Context
-- [ ] I understand what this change does and why
-
-### Correctness
-- [ ] Change matches spec/task requirements
-- [ ] Edge cases handled
-- [ ] Error paths handled
-- [ ] Tests cover the change adequately
-
-### Readability
-- [ ] Names are clear and consistent
-- [ ] Logic is straightforward
-- [ ] No unnecessary complexity
-
-### Architecture
-- [ ] Follows existing patterns
-- [ ] No unnecessary coupling or dependencies
-- [ ] Appropriate abstraction level
-
-### Security
-- [ ] No secrets in code
-- [ ] Input validated at boundaries
-- [ ] No injection vulnerabilities
-- [ ] Auth checks in place
-- [ ] External data sources treated as untrusted
-
-### Performance
-- [ ] No N+1 patterns
-- [ ] No unbounded operations
-- [ ] Pagination on list endpoints
-
-### Verification
-- [ ] Tests pass
-- [ ] Build succeeds
-- [ ] Manual verification done (if applicable)
-
-### Verdict
-- [ ] **Approve** — Ready to merge
-- [ ] **Request changes** — Issues must be addressed
-```
-## See Also
-
-- For detailed security review guidance, see `references/security-checklist.md`
-- For performance review checks, see `references/performance-checklist.md`
-
-## Common Rationalizations
-
-| Rationalization | Reality |
-|---|---|
-| "It works, that's good enough" | Working code that's unreadable, insecure, or architecturally wrong creates debt that compounds. |
-| "I wrote it, so I know it's correct" | Authors are blind to their own assumptions. Every change benefits from another set of eyes. |
-| "We'll clean it up later" | Later never comes. The review is the quality gate — use it. Require cleanup before merge, not after. |
-| "AI-generated code is probably fine" | AI code needs more scrutiny, not less. It's confident and plausible, even when wrong. |
-| "The tests pass, so it's good" | Tests are necessary but not sufficient. They don't catch architecture problems, security issues, or readability concerns. |
-
-## Red Flags
-
-- PRs merged without any review
-- Review that only checks if tests pass (ignoring other axes)
-- "LGTM" without evidence of actual review
-- Security-sensitive changes without security-focused review
-- Large PRs that are "too big to review properly" (split them)
-- No regression tests with bug fix PRs
-- Review comments without severity labels — makes it unclear what's required vs optional
-- Accepting "I'll fix it later" — it never happens
-
-## Verification
-
-After review is complete:
-
-- [ ] All Critical issues are resolved
-- [ ] All Important issues are resolved or explicitly deferred with justification
-- [ ] Tests pass
-- [ ] Build succeeds
-- [ ] The verification story is documented (what changed, how it was verified)
+- Repeating an AI finding without opening the code to confirm it.
+- Reporting only defects with no statement of what the solution does well.
+- Drilling into details before you can describe the whole solution.
+- Findings without a severity or axis label.
+- A single-model pass when the task calls for independent perspectives.
