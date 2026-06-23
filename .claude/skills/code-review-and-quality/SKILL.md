@@ -31,11 +31,8 @@ This is a local MVP solution (not a PR, not pushed to GitHub). Review the full p
    - Write a 2–4 sentence mental model of how a request flows through the system. Don't drill in until you can describe the whole.
 
 2. **Use AI to review the full solution for insights.**
-   - Run two independent review subagents with the `Agent` tool (agent type `code-review`), in one message, each given the whole solution and the same instructions:
-     - `code-reviewer-opus48`, model `opus` (Claude Opus 4.8).
-     - `code-reviewer-sonnet46`, model `sonnet` (Claude Sonnet 4.6).
-   - Do not show either subagent the other's report. Two perspectives surface different blind spots.
-   - These reviews are **insights to investigate, not conclusions to copy**.
+   - Run one review subagent with the `Agent` tool (agent type `code-review`), giving it the whole solution: `code-reviewer`, model `opus` (Claude Opus 4.8).
+   - Its report is **insights to investigate, not conclusions to copy** — every finding still gets confirmed against the code in the next step.
 
 3. **Manually drill into the areas AI flagged — and validate independently.**
    - For each AI insight, open the actual code and confirm it against the source before accepting it. Discard anything you can't reproduce.
@@ -61,7 +58,7 @@ Avoid style-only comments unless they create real maintenance risk.
 ## Subagent Prompt Shape
 
 ```text
-Goal: Independently review the entire solution for understanding, insights, and feedback.
+Goal: Review the entire solution for understanding, insights, and feedback.
 Repository: <absolute repository path>
 Instructions:
 - Read CLAUDE.md and any requirements, then build an understanding of the whole solution before detailing findings.
@@ -86,10 +83,10 @@ Open questions:
 
 ## Synthesis & Output
 
-- Deduplicate overlapping findings; keep every high-confidence finding from either model.
-- **Verify each finding against the code yourself** before including it — especially surprising or conflicting ones.
+- **Verify each finding against the code yourself** before including it — especially surprising ones.
+- Merge in anything your own drill-down surfaced that the AI missed.
 - Sort findings by severity: Critical, High, Medium, Low. Assign stable IDs `RV-1`, `RV-2`, …
-- For each finding include `Axis:` and `Flagged By:` (`Opus 4.8`, `Sonnet 4.6`, or both — or "manual" for ones you found drilling in).
+- For each finding include `Axis:` and `Source:` (`AI` for reviewer findings, `manual` for ones you found drilling in).
 
 ````markdown
 ## Overall Understanding
@@ -98,16 +95,12 @@ Open questions:
 ## Strengths
 - <What's done well, with file references.>
 
-## Model Summaries
-- **Opus 4.8:** <What this reviewer emphasized.>
-- **Sonnet 4.6:** <What this reviewer emphasized.>
-
 ## Critical Issues
 
 1. **[RV-1] SQL Injection Vulnerability**
    - **ID:** RV-1
    - **Axis:** Security
-   - **Flagged By:** Opus 4.8, Sonnet 4.6
+   - **Source:** AI
    - **Location:** `src/main/java/.../UserRepository.java:42`
    - **Problem:** User input is concatenated directly into a query.
    - **Impact:** Attackers can execute arbitrary SQL.
@@ -144,4 +137,3 @@ Open questions:
 - Reporting only defects with no statement of what the solution does well.
 - Drilling into details before you can describe the whole solution.
 - Findings without a severity or axis label.
-- A single-model pass when the task calls for independent perspectives.
