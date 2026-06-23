@@ -16,6 +16,16 @@ Build in thin vertical slices: implement one piece, test it, verify it, then exp
 
 **Skip when:** single-file, single-function change with minimal scope.
 
+## Using CodeGraph
+
+If a `.codegraph/` directory exists at the repo root, reach for the codegraph MCP server BEFORE grep/find or reading files — both when planning a slice and when editing:
+
+- **Before each slice** — `codegraph_explore "<question or symbol names>"` returns the verbatim source of the relevant symbols PLUS who calls them, so you see the blast radius before you change anything. Usually one call replaces a grep + multi-file read loop.
+- **While editing** — `codegraph_node <symbol-or-file>` gives one symbol's source + callers, or a whole file with line numbers. Use it to confirm a method signature or find every caller you must update in the same slice.
+- The index lags writes by ~1s (file watcher), so it stays current as you implement.
+
+Fall back to Read/Grep only to confirm a detail codegraph didn't cover. If there is no `.codegraph/` directory, skip this — use Read/Grep.
+
 ## The Increment Cycle
 
 For each slice: **Implement** the smallest complete piece → **Test** (run/write tests) → **Verify** (build + tests pass) → move to the **next slice** (carry forward, don't restart).

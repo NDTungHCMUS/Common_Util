@@ -8,6 +8,9 @@
 .gradle/
 build/
 
+# H2 file-based datastore (generated at runtime)
+data/
+
 # IDE
 .idea/
 *.iml
@@ -21,7 +24,3 @@ SPEC.md
 src/
 build.gradle
 settings.gradle
-gradle/
-gradlew
-gradlew.bat
-
