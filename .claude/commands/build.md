@@ -4,54 +4,48 @@ description: Implement tasks incrementally — code, build, add test, run test. 
 
 Invoke the agent-skills:incremental-implementation skill.
 
-This project does **not** use test-first (TDD). Each task still produces both code and a test, but the test is written **after** the implementation (test-after) — it does not need to fail first. Keep tests focused on the task's behavior; this is an MVP demo, not production.
+No TDD here. Each task produces code **and** a test, but the test is written **after** the code (it need not fail first). Keep tests focused on the task; this is an MVP demo.
 
 ## Modes
 
-- **`/build`** — implement the *next* pending task, then stop (careful, one slice at a time).
-- **`/build checkpoint`** — advance one *phase* at a time: run autonomously through the next checkpoint boundary, then stop for the human review the plan asks for.
-- **`/build auto`** — generate the plan if needed, get a single approval, then implement *every* task without stopping between them.
+`$ARGUMENTS` selects the mode:
 
-`$ARGUMENTS` selects the mode. Treat `auto` (canonical) or `all` as autonomous mode; `checkpoint` (or `phase`) as checkpoint mode; anything else (or empty) is the default single-task mode. Note: autonomous and checkpoint modes are not faster *per task* — they run the same build-verify loop — they only remove the human stepping *between* tasks.
+- **`/build`** (default) — implement the *next* pending task, then stop.
+- **`/build checkpoint`** (or `phase`) — run autonomously to the next checkpoint boundary, then stop for review.
+- **`/build auto`** (or `all`) — one approval, then implement *every* task without stopping between them.
+
+These modes don't make each task faster — they only remove the human step *between* tasks. Same build-verify loop runs every time.
 
 ## Default: one task
 
-Pick the next pending task from the plan. Then:
+Pick the next pending task from the plan, then:
 
-1. Read the task's acceptance criteria
-2. Load relevant context (existing code, patterns, types)
-3. Implement the minimum code that satisfies the acceptance criteria
-4. Run `./gradlew build` to verify compilation
-5. Write a test covering the new behavior (test-after — no need to fail first)
-6. Run the test (`./gradlew test --tests <ClassName>`)
-7. Mark the task complete and stop
+1. Read its acceptance criteria; load relevant context.
+2. Implement the minimum code that satisfies them.
+3. `./gradlew build` to verify compilation.
+4. Write a test for the new behavior; run it (`./gradlew test --tests <ClassName>`).
+5. Mark complete and stop.
 
 ## Autonomous: the whole plan (`/build auto`)
 
-Use this once a spec exists and you want to collapse plan + build into one run. It removes the manual stepping between tasks — **not** the verification. Every task still builds clean and earns a passing test.
+Removes the manual stepping between tasks, not the verification — every task still builds clean and earns a passing test.
 
-1. **Require a spec.** Look only for a spec at a known path: `SPEC.md` at the repo root, `docs/SPEC.md`, or a file under `spec/`. A README or arbitrary doc does **not** count. If none exists, stop and tell the user to run `/spec` first — do not invent requirements.
-2. **Establish a clean baseline.** Run `git status --porcelain` and note what was already dirty before you start, so the changes you make this run stay distinguishable from pre-existing local work. (This run does not commit per task — see step 4.)
-3. **Plan if needed.** If there is no `tasks/plan.md`, invoke agent-skills:planning-and-task-breakdown to generate one.
-4. **Single checkpoint.** Present the full plan and wait for an unambiguous affirmative (e.g. "approve", "go", "yes"). Treat hedged responses ("looks reasonable", "I guess") as **not** approved. This is the only human gate — after approval, run autonomously. This run does not commit; leave committing to the user once the work looks right.
-5. **Execute every task in dependency order.** Use each task's declared dependencies; if they aren't explicit, execute in the order the plan lists them. For each task, run the full default loop above (implement → `./gradlew build` → write test → run test → mark complete).
-6. **Stop and ask the user** (do not push through) when:
-    - a test can't be made to pass or the build breaks without an obvious fix → follow agent-skills:debugging-and-error-recovery
-    - the spec is ambiguous, or a task needs a decision the spec doesn't cover
-    - a task is high-risk or irreversible — auth/permission changes, destructive data migrations, payments, deletions, deploys, anything touching secrets, **or anything you can't undo with `git revert`** → follow agent-skills:doubt-driven-development and get explicit sign-off before continuing
-
-   After the user resolves a blocker, they re-invoke `/build auto` — it resumes from the next pending task.
-7. **Summarize at the end:** tasks completed, tests added, build/test status, and anything skipped, flagged, or left for the user.
+1. **Require a spec.** Look only at `SPEC.md`, `docs/SPEC.md`, or a file under `spec/`. If none, stop and tell the user to run `/spec` — don't invent requirements.
+2. **Plan if needed.** No `tasks/plan.md` → invoke agent-skills:planning-and-task-breakdown to generate one (with checkpoints).
+3. **Single approval gate.** Present the full plan; wait for an unambiguous "yes" (hedges don't count). This is the only human gate. Don't commit — leave that to the user.
+4. **Execute every task in dependency order**, running the default loop above for each.
+5. **Stop and ask** when: a build/test fails without an obvious fix (→ agent-skills:debugging-and-error-recovery); the spec is ambiguous; or a task is high-risk/irreversible — auth, destructive migrations, payments, deletions, deploys, secrets, anything not undoable with `git revert` (→ agent-skills:doubt-driven-development). Re-invoking `/build auto` resumes from the next pending task.
+6. **Summarize at the end:** tasks completed, tests added, build/test status, anything skipped or flagged.
 
 ## Checkpoint: through the next checkpoint (`/build checkpoint`)
 
-Advance one *phase* at a time: runs autonomously like `/build auto`, but stops at the next checkpoint boundary so the human review the plan asks for actually happens. Same verification per task.
+Like `/build auto`, but stops at the next checkpoint boundary for the review the plan asks for.
 
-1. **Require a plan with checkpoints.** Read `tasks/plan.md` (and `tasks/todo.md`). It must define checkpoints — e.g. a `## Checkpoints` section with "Checkpoint A — after Task 3", "Checkpoint B — after Task 6", etc. If there is no plan, fall back to `/build auto` step 2 to generate one (which includes checkpoints); if a plan exists but defines no checkpoints, tell the user and offer `/build auto` instead — do not invent boundaries.
-2. **Find the target checkpoint.** Locate the first pending task, then find the *nearest* checkpoint at or after it whose tasks aren't all complete. The target scope is every pending task from the first one through that checkpoint's last task (inclusive).
-3. **Single checkpoint approval.** Present just the tasks in this phase (not the whole plan) and the checkpoint's exit criteria, and wait for an unambiguous affirmative. Hedged responses are **not** approval. This is the only human gate until the checkpoint.
-4. **Execute the phase in dependency order.** For each task in scope, run the full default loop (implement → `./gradlew build` → write test → run test → mark complete).
-5. **Stop and ask** under the same conditions as `/build auto` step 5 (unfixable failure, ambiguity, high-risk/irreversible work).
-6. **At the checkpoint, halt and verify the gate.** Run the checkpoint's exit criteria from the plan (tests green, build clean, the named flow works). Report each criterion PASS/FAIL and **stop** — do not roll into the next phase. Summarize tasks completed, tests added, and the checkpoint verdict. The user re-invokes `/build checkpoint` to advance to the next one, or `/build` for a single task.
+1. **Require a plan with checkpoints** in `tasks/plan.md` (e.g. a `## Checkpoints` section). No plan → generate one (auto step 2). Plan but no checkpoints → tell the user and offer `/build auto`.
+2. **Find the target checkpoint** — the nearest one at or after the first pending task whose tasks aren't all done. Scope = every pending task through that checkpoint.
+3. **Single approval gate.** Present just this phase's tasks and the checkpoint's exit criteria; wait for an unambiguous "yes".
+4. **Execute the phase in dependency order** with the default loop.
+5. **Stop and ask** under the same conditions as `/build auto` step 5.
+6. **At the checkpoint, halt and verify the gate** — run the exit criteria, report each PASS/FAIL, and stop. Don't roll into the next phase. The user re-invokes `/build checkpoint` to continue.
 
-If any step fails, follow the agent-skills:debugging-and-error-recovery skill.
+If any step fails, follow agent-skills:debugging-and-error-recovery.
