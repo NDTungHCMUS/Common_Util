@@ -1,0 +1,27 @@
+# Claude Code — personal / machine-local settings (never commit)
+.claude/settings.local.json
+
+# CodeGraph — local index DB, daemon, sockets, logs (machine-local)
+.codegraph/
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+
+# Docs, tasks & spec — kept local, never pushed
+docs/
+tasks/
+SPEC.md
+
+# Project code & build — kept local, never pushed
+src/
+build.gradle
+settings.gradle
+gradle/
+gradlew
+gradlew.bat
+
