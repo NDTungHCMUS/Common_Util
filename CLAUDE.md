@@ -23,7 +23,6 @@ concept.
 
 - **Java 21**, **Spring Boot 3.x**, **Gradle** (`./gradlew`).
 - Web: `spring-boot-starter-web`. Persistence: `spring-boot-starter-data-jpa`
-  with **H2 in-memory** by default (zero-setup for a demo).
 - Tests: **JUnit 5** + Spring Boot Test; MockMvc for the web layer, Mockito for units.
 - Build files (`build.gradle`, `gradlew`) are generated on first build — there is none yet.
 

@@ -48,13 +48,6 @@ After each increment:
 
 Run a verification command only after a change that could affect it.
 
-## Red Flags
-
-- >100 lines written without running tests
-- Multiple unrelated changes in one increment, or "let me just quickly add this too"
-- Skipping test/verify to move faster; broken build between increments
-- Building abstractions before the third use case; editing files outside scope "while I'm here"
-
 ## When Done
 
 After all increments: each was individually verified, the full suite passes, the build is clean, and the feature works end-to-end as specified.
