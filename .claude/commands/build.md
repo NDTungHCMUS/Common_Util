@@ -34,7 +34,7 @@ Removes the manual stepping between tasks, not the verification — every task s
 2. **Plan if needed.** No `tasks/plan.md` → invoke agent-skills:planning-and-task-breakdown to generate one (with checkpoints).
 3. **Single approval gate.** Present the full plan; wait for an unambiguous "yes" (hedges don't count). This is the only human gate. Don't commit — leave that to the user.
 4. **Execute every task in dependency order**, running the default loop above for each.
-5. **Stop and ask** when a build/test fails without an obvious fix or the spec is ambiguous. Re-invoking `/build auto` resumes from the next pending task.
+5. **Stop and ask** when a build/test fails without an obvious fix. Re-invoking `/build auto` resumes from the next pending task.
 6. **Summarize at the end:** tasks completed, tests added, build/test status, anything skipped or flagged.
 
 ## Checkpoint: through the next checkpoint (`/build checkpoint`)
