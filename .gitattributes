@@ -1,0 +1,5 @@
+# Normalize text files; keep platform-correct line endings for scripts
+* text=auto eol=lf
+*.bat text eol=crlf
+gradlew text eol=lf
+*.jar binary

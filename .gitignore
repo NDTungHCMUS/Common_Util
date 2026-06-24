@@ -24,6 +24,5 @@ docs/
 tasks/
 SPEC.md
 
-# Project code & build — kept local, never pushed
-build.gradle
-settings.gradle
+# Product-specific source — kept local, not part of the reusable skeleton
+src/
