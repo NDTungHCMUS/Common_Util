@@ -31,7 +31,7 @@ Pick the next pending task from the plan, then:
 Removes the manual stepping between tasks, not the verification — every task still builds clean and earns a passing test.
 
 1. **Require a spec.** Look only at `SPEC.md`, `docs/SPEC.md`, or a file under `spec/`. If none, stop and tell the user to run `/spec` — don't invent requirements.
-2. **Plan if needed.** No `tasks/plan.md` → invoke agent-skills:planning-and-task-breakdown to generate one (with checkpoints).
+2. **Plan if needed.** No `PLAN.md` (in the project root) → invoke agent-skills:planning-and-task-breakdown to generate one (with checkpoints).
 3. **Single approval gate.** Present the full plan; wait for an unambiguous "yes" (hedges don't count). This is the only human gate. Don't commit — leave that to the user.
 4. **Execute every task in dependency order**, running the default loop above for each.
 5. **Stop and ask** when a build/test fails without an obvious fix. Re-invoking `/build auto` resumes from the next pending task.
@@ -41,7 +41,7 @@ Removes the manual stepping between tasks, not the verification — every task s
 
 Like `/build auto`, but stops at the next checkpoint boundary for the review the plan asks for.
 
-1. **Require a plan with checkpoints** in `tasks/plan.md` (e.g. a `## Checkpoints` section). No plan → generate one (auto step 2). Plan but no checkpoints → tell the user and offer `/build auto`.
+1. **Require a plan with checkpoints** in `PLAN.md` (in the project root, e.g. a `## Checkpoints` section). No plan → generate one (auto step 2). Plan but no checkpoints → tell the user and offer `/build auto`.
 2. **Find the target checkpoint** — the nearest one at or after the first pending task whose tasks aren't all done. Scope = every pending task through that checkpoint.
 3. **Single approval gate.** Present just this phase's tasks and the checkpoint's exit criteria; wait for an unambiguous "yes".
 4. **Execute the phase in dependency order** with the default loop.
