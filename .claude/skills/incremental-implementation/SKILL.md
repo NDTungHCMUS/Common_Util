@@ -30,6 +30,8 @@ Fall back to Read/Grep only to confirm a detail codegraph didn't cover. If there
 
 For each slice: **Implement** the smallest complete piece → **Test** (run/write tests) → **Verify** (build + tests pass) → move to the **next slice** (carry forward, don't restart).
 
+**Comment the purpose of every test.** Whether unit or integration, each test method carries a brief comment (or Javadoc) saying *what behavior it verifies and why* — the intent should be clear without reading the assertions.
+
 **Slicing:** Prefer **vertical** slices — one complete path through the stack (e.g. Create task → List → Edit → Delete), each working end-to-end. If one piece is risky or uncertain, do it **first** so failure surfaces early.
 
 ## Rules

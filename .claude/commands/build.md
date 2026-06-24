@@ -26,6 +26,7 @@ Pick the next pending task from the plan, then:
 4. Write a test, then run it (`./gradlew test --tests <ClassName>`):
    - **Tasks 1 … N-1:** a focused **unit test** for the new behavior (mock collaborators) — no integration test here.
    - **Task N (the final integration-test task):** the end-to-end test against the assembled stack.
+   - **Comment the purpose of every test** — each test method gets a brief comment stating *what behavior it verifies and why*, so the intent is readable without decoding the assertions.
 5. Mark complete and stop.
 
 ## Autonomous: the whole plan (`/build auto`)
