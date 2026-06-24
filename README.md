@@ -1,5 +1,3 @@
-# Task Queue 2
-
 A Java 21 / Spring Boot 3.x sandbox for building small, self-contained MVP demos
 (backend prototypes to explore an idea or pattern). Not production code.
 
