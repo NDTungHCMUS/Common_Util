@@ -31,12 +31,14 @@ Keep each task to four fields — no separate "verification" or "files" blocks (
 - **Domain:** [the one layer this task touches — schema, API, service, repository, UI, infra, test]
 - **Depends on:** [task numbers, or "None"]
 - **Change details:** [what concretely changes — files/symbols touched, before → after]
-- **AC:** [one machine-checkable condition — a named test passes, an endpoint returns X, a field persists]
+- **AC:** [one machine-checkable condition — a named **unit test** passes, an endpoint returns X, a field persists]
 ```
 
 If you cannot state **AC** as a single checkable condition, the task is too big — split it.
 
-**Always end with an integration-test task** whose Domain is `test`, that **depends on every prior task**, and whose **AC** is the end-to-end test passing against the assembled stack (the full feature flow, not one slice).
+**Tasks 1 … N-1 are code + unit test only.** Each implements one slice and is verified by a focused **unit test** (mocked collaborators) — no integration test in these tasks. Don't stand up the full stack, a real DB, or end-to-end wiring inside them.
+
+**Task N is the single integration-test task.** Its Domain is `test`, it **depends on every prior task**, and its **AC** is the end-to-end test passing against the assembled stack (the full feature flow, not one slice). This is the only task that exercises the wired-together system.
 
 ## Task Sizing
 
@@ -64,9 +66,11 @@ domain / UI / config / test. Change: concrete before→after; new files start at
 One sentence per layer touched — the human-readable summary of the manifest.
 
 ## Task List
-(Ordered by dependency; each in the four-field form. Last task is always the
-integration test depending on all prior tasks.)
+(Ordered by dependency; each in the four-field form. Tasks 1 … N-1 are code +
+unit test only. The last task is always the integration test depending on all
+prior tasks.)
 
-- [ ] Task 1: ...
+- [ ] Task 1: ... (code + unit test)
+- [ ] Task 2: ... (code + unit test)
 - [ ] Task N: Integration test — full flow end-to-end (depends on all above)
 ```

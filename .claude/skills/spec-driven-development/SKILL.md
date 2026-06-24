@@ -46,13 +46,29 @@ Framework, language, key dependencies with versions.
 Full build / test / lint / dev commands with flags.
 
 ## Project Structure
-Directory layout — where source, tests, and docs live.
+Directory layout — where source, tests, and docs live. Unit and integration
+tests share one `src/test/java` source set but live in **separate packages**:
+unit tests sit beside the layer they cover (`…/service`, `…/controller`,
+`…/repository`) as `*Test.java`; integration tests go under a dedicated
+`…/integration` package as `*IT.java`. Example:
+
+```
+src/test/java/com/example/<app>/
+├── service/        ← unit tests (*Test.java, mocked collaborators)
+├── controller/     ← unit tests (*Test.java)
+├── repository/     ← unit tests (*Test.java)
+└── integration/    ← integration tests (*IT.java, full assembled stack)
+```
 
 ## Code Style
 One short real code snippet.
 
 ## Testing Strategy
-Framework, test locations, coverage expectations, which test level for which concern.
+Framework, coverage expectations, and which test level for which concern.
+State the split explicitly: **Tasks 1 … N-1 are covered by unit tests**
+(`*Test.java`, mocked collaborators, beside their layer); **Task N is the one
+integration test** (`*IT.java` under `…/integration`, exercising the
+wired-together stack end-to-end).
 ```
 
 ## After the Spec

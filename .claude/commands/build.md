@@ -23,7 +23,9 @@ Pick the next pending task from the plan, then:
 1. Read its acceptance criteria; load relevant context.
 2. Implement the minimum code that satisfies them.
 3. `./gradlew build` to verify compilation.
-4. Write a test for the new behavior; run it (`./gradlew test --tests <ClassName>`).
+4. Write a test, then run it (`./gradlew test --tests <ClassName>`):
+   - **Tasks 1 … N-1:** a focused **unit test** for the new behavior (mock collaborators) — no integration test here.
+   - **Task N (the final integration-test task):** the end-to-end test against the assembled stack.
 5. Mark complete and stop.
 
 ## Autonomous: the whole plan (`/build auto`)
