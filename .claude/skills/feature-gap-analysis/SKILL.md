@@ -31,8 +31,8 @@ covers the feature.
    layers it requires — schema / domain / repository / service / API / config /
    test. This is the **defined** set: what a working feature must contain.
 
-3. **Inspect what exists.** Read the codebase (codegraph explore/search first if
-   available, else `grep`/`rg`/`Read`). For each needed component, find whether it
+3. **Inspect what exists.** Read the codebase (`grep`/`rg`/`Read`). For each
+   needed component, find whether it
    already exists, partially exists, or is absent. Stay read-only.
 
 4. **Name the GAP.** Produce the gap table: every needed component × its current

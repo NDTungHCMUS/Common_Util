@@ -26,15 +26,6 @@ concept.
 - Tests: **JUnit 5** + Spring Boot Test; MockMvc for the web layer, Mockito for units.
 - Build files (`build.gradle`, `gradlew`) are generated on first build — there is none yet.
 
-## Code exploration
-
-- The **codegraph** MCP server is registered globally (user scope), so it is
-  available in this project for navigating and understanding the codebase.
-  Each repo still needs its own `.codegraph/` index.
-- Use codegraph's explore/search tools first for questions about how something
-  works, where code lives, or before making edits — it returns relevant files
-  and symbols in one call, faster than reading files blind.
-
 ## Commands
 
 ```bash

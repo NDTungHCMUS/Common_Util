@@ -1,13 +1,6 @@
 # Claude Code — personal / machine-local settings (never commit)
 .claude/settings.local.json
 
-# CodeGraph — local index DB, daemon, sockets, logs (machine-local)
-.codegraph/codegraph.db
-.codegraph/codegraph.db-shm
-.codegraph/codegraph.db-wal
-.codegraph/daemon.log
-.codegraph/daemon.pid
-
 # Gradle
 .gradle/
 build/
