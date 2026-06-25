@@ -20,11 +20,38 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:junit-jupiter'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Pin the JVM timezone: the host's default (Asia/Saigon) is a deprecated alias
+    // that PostgreSQL rejects; the pgjdbc driver forwards it on connect.
+    systemProperty 'user.timezone', 'UTC'
+    // Log each test and its result as it runs.
+    testLogging {
+        events 'started', 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+        showStandardStreams false
+    }
+    // Always show results even when nothing changed (Gradle skips up-to-date tasks otherwise).
+    outputs.upToDateWhen { false }
+    // Print a run summary at the end.
+    afterSuite { desc, result ->
+        if (desc.parent == null) {
+            println "\nTest result: ${result.resultType} " +
+                    "(${result.testCount} tests, ${result.successfulTestCount} passed, " +
+                    "${result.failedTestCount} failed, ${result.skippedTestCount} skipped)"
+        }
+    }
+}
+
+tasks.named('bootRun') {
+    systemProperty 'user.timezone', 'UTC'
 }
